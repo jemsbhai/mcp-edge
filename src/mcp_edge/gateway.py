@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from .registry import DeviceRegistry, RegisteredDevice, RegistryError
+from .schema import SchemaCache
 
 SEPARATOR = "/"
 
@@ -35,18 +36,34 @@ def split_qualified(qualified_name: str) -> tuple[str, str]:
 class Gateway:
     """Aggregates attached devices behind one composite MCP tool namespace."""
 
-    def __init__(self, registry: DeviceRegistry | None = None) -> None:
+    def __init__(
+        self,
+        registry: DeviceRegistry | None = None,
+        *,
+        cache: SchemaCache | None = None,
+    ) -> None:
         self.registry = registry if registry is not None else DeviceRegistry()
+        self.cache = cache if cache is not None else SchemaCache()
 
     async def list_tools(self) -> list[dict[str, Any]]:
-        """Return every connected device's tools under device-prefixed names."""
+        """Return every connected device's tools under device-prefixed names.
+
+        Each device's tool list is cached; call :meth:`refresh` to re-query it.
+        """
         tools: list[dict[str, Any]] = []
         for device in self.registry:
             if not device.connected:
                 continue
-            for tool in await device.client.list_tools():
+            for tool in await self.cache.get(device.name, device.client.list_tools):
                 tools.append({**tool, "name": qualify(device.name, tool["name"])})
         return tools
+
+    def refresh(self, device_name: str | None = None) -> None:
+        """Invalidate cached schemas for one device, or all devices if ``None``."""
+        if device_name is None:
+            self.cache.clear()
+        else:
+            self.cache.invalidate(device_name)
 
     async def call_tool(self, qualified_name: str, arguments: dict[str, Any]) -> Any:
         """Route a qualified tool call to the owning device."""
