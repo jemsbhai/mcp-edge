@@ -19,22 +19,24 @@ tool interface they already use for software APIs. It provides:
 > **Status: alpha, under active development.** The public API is unstable and will
 > change. This repository is a *reference implementation* of the framework described in
 > the MCP-Edge paper (IEEE Cloud Summit 2026). Performance figures reported in the paper
-> are projected estimates, not measurements taken from this codebase.
+> are projected estimates, not measurements taken from this codebase. This release
+> exercises the full gateway path against *simulated* devices; real serial/BLE/Wi-Fi
+> transports arrive in a later version.
 
 ## Installation
 
-Requires Python 3.10+. Not yet published to PyPI — install from source:
+Requires Python 3.10+.
 
 ```bash
-pip install -e ".[dev]"
+pip install mcp-edge
 ```
 
-Optional transport backends:
+For development, install from source:
 
 ```bash
-pip install "mcp-edge[serial]"   # UART / USB serial devices
-pip install "mcp-edge[ble]"      # BLE devices
-pip install "mcp-edge[wifi]"     # local Wi-Fi / mDNS discovery
+git clone https://github.com/jemsbhai/mcp-edge
+cd mcp-edge
+pip install -e ".[dev]"
 ```
 
 ## Quickstart
@@ -84,18 +86,17 @@ asyncio.run(main())
 
 ## Roadmap
 
-- [ ] **v0.1** — gateway core, simulated + serial transports, protocol adaptations,
-      device simulator, CLI, hermetic CI
-- [ ] **v0.1–0.2** — [Wokwi](https://wokwi.com) firmware-in-the-loop tests
-      (Arduino / ESP32 / RP2040)
+- [x] **v0.1** — gateway core, in-process (loopback) transport, protocol adaptations
+      (CBOR, schema caching, connection pooling, offline buffering), device simulator,
+      health monitor, CLI, hermetic CI
+- [ ] **v0.2** — real transports (`pyserial` UART/USB, BLE, Wi-Fi/mDNS) and
+      [Wokwi](https://wokwi.com) firmware-in-the-loop tests (Arduino / ESP32 / RP2040)
 - [ ] **v0.2+** — Edge Impulse (inference as an MCP tool) and Arduino IoT Cloud
       (properties as MCP) integration examples; Renode / QEMU backends
 
 ## Development
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1     # PowerShell (Windows); use `source .venv/bin/activate` on Unix
 pip install -e ".[dev]"
 pytest -q
 ruff check .

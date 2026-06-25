@@ -6,16 +6,31 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-06-25
+
+First public release. Alpha: the API is unstable and will change.
+
 ### Added
-- Initial project scaffold: packaging metadata (`pyproject.toml`), MIT license,
-  `.gitignore`, `.env.example`, README, package skeleton, test harness, and CI workflow.
-- `mcp-edge` CLI entry point (argparse) with `--version` and a placeholder `run` command.
+- Four-tier device taxonomy (`tiers`) mapping RFC 7228 device classes to MCP
+  strategies, with nine reference platforms.
+- CBOR codec (`codec`) for the device link, plus a JSON size-comparison helper.
+- Transport abstraction (`transports`) and an in-process loopback transport.
+- MCP-Lite protocol (`mcplite`): CBOR-framed `tools/list`, `tools/call`,
+  `resources/read`.
+- Device simulator (`devices.SimulatedDevice`) for hardware-free development and tests.
+- Device client layer (`client`): the `DeviceClient` interface and `MCPLiteClient`.
+- Device registry (`registry`) and the aggregating `Gateway`, which exposes every
+  device's tools under a device-prefixed composite namespace and routes calls back.
+- Gateway exposed as an MCP server (`server.build_server`, `run_stdio`) built on the
+  SDK's low-level `Server`.
+- `mcp-edge` CLI with `run [--demo]` to serve a gateway (optionally preloaded with
+  simulated devices) over stdio.
+- Protocol adaptations: schema caching (`schema`), connection pooling (`pool`), and
+  offline request buffering (`buffer`).
+- Health monitor (`health`) that probes devices and updates their connection state.
 
-## [0.1.0] - Unreleased
-
-First release (in progress). Planned scope:
-
-- Gateway core: device registry, schema aggregator, composite MCP server, health monitor.
-- Transports: simulated loopback adapter and a `pyserial` UART/USB adapter.
-- Protocol adaptations: CBOR codec, schema caching, connection pooling, offline buffering.
-- Device simulator: simulated MCP-Lite and gateway-proxy devices for tests and scalability.
+### Notes
+- Real serial / BLE / Wi-Fi transports (and firmware-in-the-loop testing) arrive in a
+  later release; this version exercises the full path against simulated devices.
+- Performance figures in the MCP-Edge paper are projected estimates, not measurements
+  taken from this code.
