@@ -1,0 +1,63 @@
+name: Wokwi simulation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "examples/firmware/esp32_micropython/**"
+      - ".github/workflows/wokwi.yml"
+  pull_request:
+    paths:
+      - "examples/firmware/esp32_micropython/**"
+      - ".github/workflows/wokwi.yml"
+  workflow_dispatch:
+
+# Simulated boot smoke test. Flashes the example firmware onto a Wokwi-simulated ESP32
+# running real MicroPython and checks that main.py boots and prints its ready marker.
+# This proves the firmware runs under MicroPython -- catching MicroPython-incompatible
+# code that the hermetic CPython tests cannot -- but does NOT exercise the serial
+# protocol round-trip (Wokwi validates text on UART0; our frames are binary on UART1).
+# It needs the WOKWI_CLI_TOKEN secret and skips cleanly (passing) without it, so it
+# never blocks the core CI workflow.
+
+jobs:
+  boot-smoke-test:
+    runs-on: ubuntu-latest
+    env:
+      WOKWI_CLI_TOKEN: ${{ secrets.WOKWI_CLI_TOKEN }}
+      # Must match the firmware name in examples/firmware/esp32_micropython/wokwi.toml.
+      FIRMWARE: ESP32_GENERIC-20260406-v1.28.0.bin
+      EXAMPLE_DIR: examples/firmware/esp32_micropython
+    steps:
+      - name: Check for Wokwi token
+        id: guard
+        run: |
+          if [ -z "$WOKWI_CLI_TOKEN" ]; then
+            echo "WOKWI_CLI_TOKEN not set (fork or PR without the secret) -- skipping."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.guard.outputs.run == 'true'
+        uses: actions/checkout@v4
+
+      - name: Download MicroPython ESP32 firmware
+        if: steps.guard.outputs.run == 'true'
+        run: |
+          # If this 404s, check https://micropython.org/download/ESP32_GENERIC for the
+          # current stable filename and update FIRMWARE here and in wokwi.toml.
+          url="https://micropython.org/resources/firmware/${FIRMWARE}"
+          echo "Downloading ${url}"
+          curl -fSL "${url}" -o "${EXAMPLE_DIR}/${FIRMWARE}"
+
+      - name: Boot smoke test on simulated ESP32
+        if: steps.guard.outputs.run == 'true'
+        uses: wokwi/wokwi-ci-action@v1
+        with:
+          token: ${{ secrets.WOKWI_CLI_TOKEN }}
+          path: ${{ env.EXAMPLE_DIR }}
+          timeout: 60000
+          expect_text: "mcp-edge device ready"
+          fail_text: "Traceback"

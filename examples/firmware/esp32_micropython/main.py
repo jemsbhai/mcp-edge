@@ -39,6 +39,9 @@ def main():
     device = MCPLiteDevice()
     device.add_tool("read_temp", _read_temp, "Read the current temperature in Celsius")
     device.add_tool("set_led", _set_led, "Turn the onboard LED on or off")
+    # Startup marker on UART0 (the REPL/log channel). The Wokwi CI boot smoke test
+    # waits for this line to confirm the firmware booted under real MicroPython.
+    print("mcp-edge device ready")
     serve_forever(device, uart)
 
 

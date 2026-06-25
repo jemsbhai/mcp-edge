@@ -56,3 +56,6 @@ Thumbs.db
 *.log
 *.vcd
 screenshot*.png
+
+# MicroPython firmware downloaded for Wokwi simulation (not committed)
+examples/firmware/esp32_micropython/*.bin

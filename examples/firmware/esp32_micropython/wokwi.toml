@@ -1,0 +1,10 @@
+# Wokwi simulation config for the MCP-Edge ESP32 MicroPython device.
+#
+# For MicroPython, "firmware" is the MicroPython interpreter image itself. Wokwi copies
+# the project's .py files (main.py, mcplite_device.py) into the simulated flash, boots
+# the firmware, and runs main.py. The .bin is downloaded by CI rather than committed
+# (see .github/workflows/wokwi.yml and .gitignore); the name here must match what CI
+# fetches.
+[wokwi]
+version = 1
+firmware = 'ESP32_GENERIC-20260406-v1.28.0.bin'
