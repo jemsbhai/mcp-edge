@@ -12,6 +12,7 @@ from typing import Any
 
 import mcp.types as types
 from mcp.server.lowlevel import Server
+from mcp.server.stdio import stdio_server
 
 from .gateway import Gateway
 
@@ -56,10 +57,20 @@ def build_server(gateway: Gateway, *, name: str = DEFAULT_SERVER_NAME) -> Server
     return server
 
 
+async def run_stdio(server: Server) -> None:
+    """Serve ``server`` over stdio until the client disconnects.
+
+    Note: stdio is the JSON-RPC channel, so callers must log only to stderr.
+    """
+    async with stdio_server() as (read_stream, write_stream):
+        await server.run(read_stream, write_stream, server.create_initialization_options())
+
+
 __all__ = [
     "DEFAULT_SERVER_NAME",
     "tool_to_mcp",
     "list_tools_payload",
     "call_tool_payload",
     "build_server",
+    "run_stdio",
 ]
