@@ -39,11 +39,52 @@ pip install "mcp-edge[wifi]"     # local Wi-Fi / mDNS discovery
 
 ## Quickstart
 
-_Coming soon — the gateway and device simulator land in upcoming releases._
+**Run a demo gateway** — an MCP server exposing two simulated devices over stdio:
+
+```bash
+mcp-edge run --demo
+```
+
+This serves a simulated sensor (`read_temp`, `read_humidity`) and a simulated ring
+(`heart_rate`), each tool namespaced by device (`sensor-01/read_temp`, ...). To drive it
+from an MCP client such as the MCP Inspector or Claude Desktop, configure a stdio server
+with command `mcp-edge` and arguments `["run", "--demo"]`. The process logs to stderr and
+waits for a client on stdin.
+
+**Use the gateway as a library:**
+
+```python
+import asyncio
+
+from mcp_edge.client import MCPLiteClient
+from mcp_edge.devices import SimulatedDevice
+from mcp_edge.gateway import Gateway
+from mcp_edge.registry import DeviceRegistry
+from mcp_edge.tiers import Tier
+from mcp_edge.transports import LoopbackTransport
+
+
+async def main() -> None:
+    device = SimulatedDevice("sensor-01")
+    device.add_tool("read_temp", lambda args: {"celsius": 21.5})
+
+    transport = LoopbackTransport(device.handle)
+    await transport.open()
+
+    registry = DeviceRegistry()
+    registry.register("sensor-01", MCPLiteClient(transport), Tier.SMART_NODE)
+
+    gateway = Gateway(registry)
+    print([tool["name"] for tool in await gateway.list_tools()])  # ['sensor-01/read_temp']
+    print(await gateway.call_tool("sensor-01/read_temp", {}))     # {'celsius': 21.5}
+
+
+asyncio.run(main())
+```
 
 ## Roadmap
 
-- [ ] **v0.1** — gateway core, serial + simulated transports, protocol adaptations,
+- [ ] **v0.1** — gateway core, simulated + serial transports, protocol adaptations,
       device simulator, CLI, hermetic CI
 - [ ] **v0.1–0.2** — [Wokwi](https://wokwi.com) firmware-in-the-loop tests
       (Arduino / ESP32 / RP2040)
