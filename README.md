@@ -1,5 +1,7 @@
 # MCP-Edge
 
+[![CI](https://github.com/jemsbhai/mcp-edge/actions/workflows/ci.yml/badge.svg)](https://github.com/jemsbhai/mcp-edge/actions/workflows/ci.yml)
+
 **Extend the [Model Context Protocol (MCP)](https://modelcontextprotocol.io) to edge and IoT devices.**
 
 MCP-Edge lets cloud LLM agents discover and invoke physical hardware through the same

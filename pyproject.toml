@@ -51,7 +51,10 @@ dev = [
 [project.scripts]
 mcp-edge = "mcp_edge.cli:main"
 
-# TODO: add [project.urls] (Homepage / Repository / Issues) once the GitHub repo exists.
+[project.urls]
+Homepage = "https://github.com/jemsbhai/mcp-edge"
+Repository = "https://github.com/jemsbhai/mcp-edge"
+Issues = "https://github.com/jemsbhai/mcp-edge/issues"
 
 [tool.hatch.version]
 path = "src/mcp_edge/__init__.py"
