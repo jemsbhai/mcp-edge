@@ -84,12 +84,24 @@ TIER_PROFILES: dict[Tier, TierProfile] = {
 
 
 REFERENCE_PLATFORMS: tuple[Platform, ...] = (
-    Platform("Arduino UNO", Tier.CONSTRAINED_MCU, "2 KB SRAM", "UART", "single-byte command codes"),
+    Platform("Arduino UNO", Tier.CONSTRAINED_MCU, "2 KB SRAM", "UART", "single-byte commands"),
     Platform("Xiao RP2040", Tier.CONSTRAINED_MCU, "264 KB SRAM", "USB"),
     Platform("ESP32-C3", Tier.CONSTRAINED_MCU, "400 KB", "Wi-Fi / BLE"),
     Platform("ESP32-C6", Tier.CONSTRAINED_MCU, "512 KB", "Wi-Fi 6 / BLE 5 / Thread"),
-    Platform("M5Stack", Tier.SMART_NODE, "520 KB SRAM + 4 MB PSRAM", "Wi-Fi", "MicroPython MCP-Lite"),
-    Platform("Waveshare T5", Tier.SMART_NODE, "512 KB + 8 MB PSRAM", "Wi-Fi", "MicroPython MCP-Lite"),
+    Platform(
+        "M5Stack",
+        Tier.SMART_NODE,
+        "520 KB SRAM + 4 MB PSRAM",
+        "Wi-Fi",
+        "MicroPython MCP-Lite",
+    ),
+    Platform(
+        "Waveshare T5",
+        Tier.SMART_NODE,
+        "512 KB + 8 MB PSRAM",
+        "Wi-Fi",
+        "MicroPython MCP-Lite",
+    ),
     Platform("Colmi Ring", Tier.BLE_WEARABLE, "n/a", "BLE GATT", "heart rate / SpO2 / steps"),
     Platform(
         "Raspberry Pi 5",
