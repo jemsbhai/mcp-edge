@@ -19,9 +19,11 @@ tool interface they already use for software APIs. It provides:
 > **Status: alpha, under active development.** The public API is unstable and will
 > change. This repository is a *reference implementation* of the framework described in
 > the MCP-Edge paper (IEEE Cloud Summit 2026). Performance figures reported in the paper
-> are projected estimates, not measurements taken from this codebase. This release
-> exercises the full gateway path against *simulated* devices; real serial/BLE/Wi-Fi
-> transports arrive in a later version.
+> are projected estimates, not measurements taken from this codebase. The full gateway
+> path is exercised against *simulated* devices. A serial/UART transport has landed in the
+> codebase — validated in software against an in-memory fake, but not yet exercised on
+> physical hardware or paired with example firmware; BLE and Wi-Fi transports arrive in a
+> later version.
 
 ## Installation
 
@@ -84,13 +86,32 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+**Connect your own device over serial** *(experimental)* — install the `serial` extra
+(`pip install "mcp-edge[serial]"`) and point `SerialTransport` at the port your device is
+on. It exposes the same `Transport` interface, so it drops into the example above in place
+of `LoopbackTransport`:
+
+```python
+from mcp_edge.transports import SerialTransport
+
+# "COM3" on Windows, "/dev/ttyUSB0" on Linux/macOS
+transport = SerialTransport("COM3", baudrate=115200)
+```
+
+Frames use a length-prefixed wire format — a 2-byte big-endian length followed by the CBOR
+payload — documented in `transports/serial.py`. Device firmware must frame its replies the
+same way; the exported `encode_frame` / `decode_frame` helpers make that straightforward.
+This path is **not yet validated on physical hardware**, and example firmware is still in
+progress.
+
 ## Roadmap
 
 - [x] **v0.1** — gateway core, in-process (loopback) transport, protocol adaptations
       (CBOR, schema caching, connection pooling, offline buffering), device simulator,
       health monitor, CLI, hermetic CI
-- [ ] **v0.2** — real transports (`pyserial` UART/USB, BLE, Wi-Fi/mDNS) and
-      [Wokwi](https://wokwi.com) firmware-in-the-loop tests (Arduino / ESP32 / RP2040)
+- [ ] **v0.2** — real transports and [Wokwi](https://wokwi.com) firmware-in-the-loop
+      tests (Arduino / ESP32 / RP2040). The serial/UART transport (`pyserial`) has landed
+      (software-tested); BLE and Wi-Fi/mDNS are still to come
 - [ ] **v0.2+** — Edge Impulse (inference as an MCP tool) and Arduino IoT Cloud
       (properties as MCP) integration examples; Renode / QEMU backends
 

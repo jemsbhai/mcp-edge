@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+- Serial (UART) transport (`transports.SerialTransport`, `serial` extra) that carries
+  MCP-Lite frames over a length-prefixed wire format: a 2-byte big-endian length followed
+  by the CBOR payload. Blocking pyserial I/O runs in a worker thread, and pyserial is
+  imported lazily — needed only when opening a real port. The `encode_frame` and
+  `decode_frame` helpers are exported so device firmware can match the framing. Validated
+  in software against an in-memory fake; not yet exercised on physical hardware.
+
 ## [0.1.0] - 2026-06-25
 
 First public release. Alpha: the API is unstable and will change.
