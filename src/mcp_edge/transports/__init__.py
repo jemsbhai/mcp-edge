@@ -4,5 +4,12 @@ from __future__ import annotations
 
 from .base import Transport, TransportError
 from .loopback import FrameHandler, LoopbackTransport
+from .serial import SerialTransport
 
-__all__ = ["Transport", "TransportError", "LoopbackTransport", "FrameHandler"]
+__all__ = [
+    "Transport",
+    "TransportError",
+    "LoopbackTransport",
+    "FrameHandler",
+    "SerialTransport",
+]
