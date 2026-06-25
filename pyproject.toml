@@ -1,0 +1,78 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mcp-edge"
+dynamic = ["version"]
+description = "Extend the Model Context Protocol (MCP) to edge and IoT devices: a bridging gateway, a lightweight MCP-Lite server, and a four-tier device taxonomy."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Muntaser Syed" },
+    { name = "Sheikh Abujar" },
+    { name = "Sharun Akter" },
+]
+keywords = ["mcp", "model-context-protocol", "edge", "iot", "llm", "agents", "gateway", "embedded"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet",
+    "Topic :: System :: Hardware",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "mcp>=1.4,<2",
+    "cbor2>=5.6",
+]
+
+[project.optional-dependencies]
+serial = ["pyserial>=3.5"]
+ble = ["bleak>=0.22"]
+wifi = ["zeroconf>=0.131"]
+all = ["mcp-edge[serial,ble,wifi]"]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+    "mypy>=1.10",
+    "build>=1.2",
+    "twine>=5.0",
+]
+
+[project.scripts]
+mcp-edge = "mcp_edge.cli:main"
+
+# TODO: add [project.urls] (Homepage / Repository / Issues) once the GitHub repo exists.
+
+[tool.hatch.version]
+path = "src/mcp_edge/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mcp_edge"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_unused_ignores = true
