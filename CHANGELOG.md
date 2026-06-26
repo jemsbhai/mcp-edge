@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+- BLE transport (`transports.BLETransport`, `ble` extra) that carries MCP-Lite frames over
+  a Bluetooth Low Energy GATT link via bleak. It defaults to the Nordic UART Service —
+  writing to the peripheral's RX characteristic and subscribing to its TX characteristic
+  for notifications — with both characteristic UUIDs overridable for other firmware. It
+  reuses the serial length-prefix framing, splitting each frame into MTU-sized packets on
+  send and reassembling inbound notifications from the same prefix; bleak is imported
+  lazily. Validated in software against an in-memory fake; not yet exercised on physical
+  hardware.
+
 ## [0.1.1] - 2026-06-25
 
 ### Added
