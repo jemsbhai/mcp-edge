@@ -12,21 +12,22 @@ on:
       - ".github/workflows/wokwi.yml"
   workflow_dispatch:
 
-# Simulated boot smoke test. Flashes the example firmware onto a Wokwi-simulated ESP32
-# running real MicroPython and checks that main.py boots and prints its ready marker.
-# This proves the firmware runs under MicroPython -- catching MicroPython-incompatible
-# code that the hermetic CPython tests cannot -- but does NOT exercise the serial
-# protocol round-trip (Wokwi validates text on UART0; our frames are binary on UART1).
-# It needs the WOKWI_CLI_TOKEN secret and skips cleanly (passing) without it, so it
-# never blocks the core CI workflow.
+# Simulated boot smoke test. Builds a MicroPython ESP32 image with this project's .py
+# files baked into its littlefs filesystem, boots it on a Wokwi-simulated ESP32, and
+# checks that main.py runs and prints its ready marker. This proves the firmware runs
+# under real MicroPython -- catching MicroPython-incompatible code the hermetic CPython
+# tests cannot -- but does NOT exercise the serial protocol round-trip (Wokwi validates
+# text on UART0; our frames are binary on UART1). It needs the WOKWI_CLI_TOKEN secret and
+# skips cleanly (passing) without it, so it never blocks the core CI workflow.
 
 jobs:
   boot-smoke-test:
     runs-on: ubuntu-latest
     env:
       WOKWI_CLI_TOKEN: ${{ secrets.WOKWI_CLI_TOKEN }}
-      # Must match the firmware name in examples/firmware/esp32_micropython/wokwi.toml.
-      FIRMWARE: ESP32_GENERIC-20260406-v1.28.0.bin
+      # Stock MicroPython ESP32 image. If the download 404s, check
+      # https://micropython.org/download/ESP32_GENERIC for the current stable filename.
+      MICROPYTHON_BIN: ESP32_GENERIC-20260406-v1.28.0.bin
       EXAMPLE_DIR: examples/firmware/esp32_micropython
     steps:
       - name: Check for Wokwi token
@@ -43,14 +44,33 @@ jobs:
         if: steps.guard.outputs.run == 'true'
         uses: actions/checkout@v4
 
-      - name: Download MicroPython ESP32 firmware
+      - name: Set up Python
         if: steps.guard.outputs.run == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install firmware image tool
+        if: steps.guard.outputs.run == 'true'
+        run: pip install "mp-image-tool-esp32[littlefs]"
+
+      - name: Build MicroPython image with the device files baked in
+        if: steps.guard.outputs.run == 'true'
+        working-directory: ${{ env.EXAMPLE_DIR }}
         run: |
-          # If this 404s, check https://micropython.org/download/ESP32_GENERIC for the
-          # current stable filename and update FIRMWARE here and in wokwi.toml.
-          url="https://micropython.org/resources/firmware/${FIRMWARE}"
+          set -euo pipefail
+          # 1. Download the stock MicroPython firmware.
+          url="https://micropython.org/resources/firmware/${MICROPYTHON_BIN}"
           echo "Downloading ${url}"
-          curl -fSL "${url}" -o "${EXAMPLE_DIR}/${FIRMWARE}"
+          curl -fSL "${url}" -o "${MICROPYTHON_BIN}"
+          # 2. Pad it to the full 4 MB so the vfs flash region physically exists.
+          python -c "open('firmware-4m.bin','wb').write(open('${MICROPYTHON_BIN}','rb').read().ljust(0x400000, bytes([255])))"
+          # 3. Add a vfs partition, format it littlefs2, and inject the device files.
+          #    Recent MicroPython ships no vfs entry (it creates one at runtime), so a
+          #    prebuilt image needs the partition added before files can be baked in.
+          mp-image-tool-esp32 firmware-4m.bin --add vfs=fat:2M:2M --fs mkfs vfs --fs put main.py mcplite_device.py / -o firmware-fs.bin
+          # 4. Log the filesystem contents as a sanity check.
+          mp-image-tool-esp32 firmware-fs.bin --fs ls /
 
       - name: Boot smoke test on simulated ESP32
         if: steps.guard.outputs.run == 'true'
