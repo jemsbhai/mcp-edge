@@ -13,6 +13,20 @@ All notable changes to this project are documented here. The format is based on
   imported lazily — needed only when opening a real port. The `encode_frame` and
   `decode_frame` helpers are exported so device firmware can match the framing. Validated
   in software against an in-memory fake; not yet exercised on physical hardware.
+- Portable firmware device core
+  (`examples/firmware/esp32_micropython/mcplite_device.py`) that runs unchanged under
+  CPython and MicroPython: a self-contained CBOR-subset codec, the serial length-prefix
+  framing, and an MCP-Lite request dispatcher, with no hardware or third-party imports. A
+  hermetic test (`tests/test_firmware_core.py`) cross-checks it against the gateway's
+  codec, framing, and protocol semantics under CPython.
+- ESP32 MicroPython device example (`examples/firmware/esp32_micropython/`): a `main.py`
+  entry point exposing `read_temp` and `set_led` over UART, a hardware host demo
+  (`host_demo.py`) that drives a real board through `SerialTransport` + `MCPLiteClient`,
+  and a README covering flashing and wiring.
+- Wokwi-simulated boot smoke test (`.github/workflows/wokwi.yml`) that bakes the device
+  files into a MicroPython image and confirms it boots and runs `main.py` on a simulated
+  ESP32. Gated on a `WOKWI_CLI_TOKEN` secret and skipped without it. Validates MicroPython
+  compatibility only — not the serial protocol round-trip, and not physical hardware.
 
 ## [0.1.0] - 2026-06-25
 

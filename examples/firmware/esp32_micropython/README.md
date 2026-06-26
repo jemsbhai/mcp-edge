@@ -5,9 +5,10 @@ exposes tools over a serial link, which an MCP-Edge gateway on a host drives wit
 `SerialTransport`.
 
 > **Status:** the protocol core is validated in software against the gateway's codec and
-> framing (`tests/test_firmware_core.py` in the repo root), but this example has not been
-> run on physical hardware by the maintainers. Treat the flashing and wiring notes below
-> as a starting point and verify against your own board.
+> framing (`tests/test_firmware_core.py` in the repo root), and `main.py` is booted on a
+> *simulated* ESP32 in CI (see [Simulated boot test](#simulated-boot-test)). It has **not**
+> been run on physical hardware by the maintainers — treat the flashing and wiring notes
+> below as a starting point and verify against your own board.
 
 ## Files
 
@@ -54,6 +55,24 @@ python host_demo.py --port /dev/ttyUSB0    # Linux
 ```
 
 You should see the tool list, a temperature reading, and the LED toggling on then off.
+
+## Simulated boot test
+
+CI runs a boot smoke test on a [Wokwi](https://wokwi.com)-simulated ESP32
+(`.github/workflows/wokwi.yml`, driven by `wokwi.toml` and `diagram.json` in this
+directory). It boots `main.py` under real MicroPython and waits for the
+`mcp-edge device ready` marker, confirming the firmware imports `mcplite_device.py` and
+initializes without error on-device — which catches MicroPython-incompatible code that the
+CPython tests would miss. It does **not** exercise the serial protocol: Wokwi checks text
+on UART0, while data frames travel on UART1.
+
+The Wokwi CLI boots a bare firmware image (unlike the web IDE, it does not auto-load
+project files), so the workflow bakes `main.py` and `mcplite_device.py` into the image
+first: it downloads the stock MicroPython build, pads it to 4 MB, adds a `vfs` partition,
+and writes the files into a littlefs image with
+[`mp-image-tool-esp32`](https://github.com/glenn20/mp-image-tool-esp32). The job needs a
+`WOKWI_CLI_TOKEN` repository secret and skips cleanly without it, so forks and PRs are
+unaffected.
 
 ## Note on floats
 
