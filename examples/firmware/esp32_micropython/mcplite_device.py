@@ -11,7 +11,8 @@ to talk to the MCP-Edge gateway:
 * a CBOR encoder/decoder for the JSON-like value subset MCP-Lite uses, wire compatible
   with the gateway's ``cbor2``-based codec;
 * the length-prefixed framing the serial transport uses: a 2-byte big-endian length
-  followed by the CBOR payload;
+  followed by the CBOR payload, with both a pull-based reader (``read_frame``) for stream
+  links and a push-based reader (``FrameReader``) for packet links such as BLE;
 * an MCP-Lite request dispatcher for ``tools/list``, ``tools/call`` and
   ``resources/read`` that mirrors the in-process simulator's behaviour.
 
@@ -225,6 +226,37 @@ def read_frame(stream):
     if size == 0:
         return b""
     return _recv(stream, size)
+
+
+class FrameReader:
+    """Reassemble length-prefixed frames from pushed byte chunks.
+
+    Unlike ``read_frame``, which pulls from a stream, ``FrameReader`` is fed bytes as they
+    arrive and emits complete payloads -- use it on links that deliver discrete packets
+    rather than a readable stream, such as BLE notifications. ``feed`` appends received
+    bytes; ``next_frame`` returns the next complete payload, or ``None`` while one is still
+    incomplete. The framing matches ``frame``: a 2-byte big-endian length then the payload.
+    """
+
+    def __init__(self):
+        self._buffer = bytearray()
+
+    def feed(self, data):
+        """Append received bytes to the reassembly buffer."""
+        self._buffer.extend(data)
+
+    def next_frame(self):
+        """Return the next complete payload, or ``None`` if a frame is still incomplete."""
+        buffer = self._buffer
+        if len(buffer) < 2:
+            return None
+        size = (buffer[0] << 8) | buffer[1]
+        end = 2 + size
+        if len(buffer) < end:
+            return None
+        payload = bytes(buffer[2:end])
+        del buffer[:end]
+        return payload
 
 
 # --- MCP-Lite device ----------------------------------------------------------------

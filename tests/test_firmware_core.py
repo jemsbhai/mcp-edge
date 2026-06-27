@@ -169,3 +169,42 @@ def test_unknown_method_returns_error() -> None:
     response = _exchange(_build_device(), Request(3, "prompts/list", {}))
     assert response.is_error
     assert response.error["code"] == mcplite.METHOD_NOT_FOUND
+
+
+# --- FrameReader: push-based frame reassembly for packet links (e.g. BLE) ------------
+
+def test_frame_reader_reassembles_single_frame() -> None:
+    reader = device_core.FrameReader()
+    reader.feed(encode_frame(b"hello frame"))
+    assert reader.next_frame() == b"hello frame"
+    assert reader.next_frame() is None
+
+
+def test_frame_reader_reassembles_byte_at_a_time() -> None:
+    reader = device_core.FrameReader()
+    for byte in encode_frame(b"reassemble me"):
+        reader.feed(bytes([byte]))
+    assert reader.next_frame() == b"reassemble me"
+
+
+def test_frame_reader_yields_multiple_frames_in_order() -> None:
+    reader = device_core.FrameReader()
+    reader.feed(encode_frame(b"one") + encode_frame(b"two"))
+    assert reader.next_frame() == b"one"
+    assert reader.next_frame() == b"two"
+    assert reader.next_frame() is None
+
+
+def test_frame_reader_returns_none_until_frame_complete() -> None:
+    reader = device_core.FrameReader()
+    framed = encode_frame(b"partial")
+    reader.feed(framed[:3])
+    assert reader.next_frame() is None
+    reader.feed(framed[3:])
+    assert reader.next_frame() == b"partial"
+
+
+def test_frame_reader_handles_empty_payload() -> None:
+    reader = device_core.FrameReader()
+    reader.feed(encode_frame(b""))
+    assert reader.next_frame() == b""

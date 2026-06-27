@@ -15,6 +15,12 @@ All notable changes to this project are documented here. The format is based on
   send and reassembling inbound notifications from the same prefix; bleak is imported
   lazily. Validated in software against an in-memory fake; not yet exercised on physical
   hardware.
+- BLE variant of the ESP32 MicroPython example: two device entry points over the Nordic
+  UART Service — `main_ble.py` (aioble) and `main_ble_lowlevel.py` (the built-in
+  `bluetooth` module) — plus a `host_demo_ble.py` host demo driven through `BLETransport`.
+  The portable core gains a push-based `FrameReader` that reassembles frames from BLE
+  packets (covered by `tests/test_firmware_core.py`). The BLE entry points are not booted
+  in CI (Wokwi has no BLE radio) and are not validated on hardware.
 
 ## [0.1.1] - 2026-06-25
 
