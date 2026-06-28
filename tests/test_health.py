@@ -26,6 +26,17 @@ class _FailingClient(_HealthyClient):
         raise DeviceError("unreachable", code=-1)
 
 
+class _FlushRecordingClient(_HealthyClient):
+    """A reachable client that counts flush() calls, to check the reconnect hook."""
+
+    def __init__(self) -> None:
+        self.flushes = 0
+
+    async def flush(self) -> int:
+        self.flushes += 1
+        return 0
+
+
 async def test_default_probe_true_when_reachable() -> None:
     device = RegisteredDevice("d", Tier.SMART_NODE, _HealthyClient())
     assert await default_probe(device) is True
@@ -64,3 +75,82 @@ async def test_recovery_flips_back_to_connected() -> None:
     monitor = HealthMonitor(registry, interval=0)
     await monitor.check(device)
     assert device.connected is True
+
+
+async def test_on_reconnect_fires_on_recovery_edge() -> None:
+    registry = DeviceRegistry()
+    registry.register("d", _HealthyClient(), Tier.SMART_NODE)
+    device = registry.get("d")
+    device.connected = False
+
+    reconnected: list[str] = []
+
+    async def on_reconnect(dev: RegisteredDevice) -> None:
+        reconnected.append(dev.name)
+
+    monitor = HealthMonitor(registry, interval=0, on_reconnect=on_reconnect)
+    await monitor.check(device)
+    assert device.connected is True
+    assert reconnected == ["d"]
+
+
+async def test_on_reconnect_silent_when_already_connected() -> None:
+    registry = DeviceRegistry()
+    registry.register("d", _HealthyClient(), Tier.SMART_NODE)
+    device = registry.get("d")
+
+    reconnected: list[str] = []
+
+    async def on_reconnect(dev: RegisteredDevice) -> None:
+        reconnected.append(dev.name)
+
+    monitor = HealthMonitor(registry, interval=0, on_reconnect=on_reconnect)
+    await monitor.check(device)
+    assert reconnected == []
+
+
+async def test_on_reconnect_silent_on_disconnect() -> None:
+    registry = DeviceRegistry()
+    registry.register("d", _FailingClient(), Tier.SMART_NODE)
+    device = registry.get("d")
+
+    reconnected: list[str] = []
+
+    async def on_reconnect(dev: RegisteredDevice) -> None:
+        reconnected.append(dev.name)
+
+    monitor = HealthMonitor(registry, interval=0, on_reconnect=on_reconnect)
+    await monitor.check(device)
+    assert device.connected is False
+    assert reconnected == []
+
+
+async def test_on_reconnect_failure_does_not_break_check() -> None:
+    registry = DeviceRegistry()
+    registry.register("d", _HealthyClient(), Tier.SMART_NODE)
+    device = registry.get("d")
+    device.connected = False
+
+    async def on_reconnect(dev: RegisteredDevice) -> None:
+        raise RuntimeError("flush failed")
+
+    monitor = HealthMonitor(registry, interval=0, on_reconnect=on_reconnect)
+    assert await monitor.check(device) is True
+    assert device.connected is True
+
+
+async def test_reconnect_hook_flushes_the_client() -> None:
+    client = _FlushRecordingClient()
+    registry = DeviceRegistry()
+    registry.register("d", client, Tier.SMART_NODE)
+    device = registry.get("d")
+    device.connected = False
+
+    async def on_reconnect(dev: RegisteredDevice) -> None:
+        flush = getattr(dev.client, "flush", None)
+        if flush is not None:
+            await flush()
+
+    monitor = HealthMonitor(registry, interval=0, on_reconnect=on_reconnect)
+    await monitor.check(device)
+    assert client.flushes == 1

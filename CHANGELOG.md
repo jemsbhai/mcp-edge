@@ -26,6 +26,15 @@ All notable changes to this project are documented here. The format is based on
   firmware advertises only its hostname (an A record), not the full service record, so the
   ESP32 example is reached at `mcp-edge.local` rather than through this browser unless a
   full mDNS responder is added.
+- Connection pooling and offline buffering wired into the device client and health
+  monitor. `MCPLiteClient` can now draw its transport from a shared `pool.ConnectionPool`
+  per call (`MCPLiteClient.pooled(pool, key)`) so the gateway reuses and caps device
+  connections, and an optional `buffer.OfflineBuffer` backs a one-way `send_command` that
+  queues commands while a device is unreachable — `flush` replays them in order, dropping
+  any the device rejects. `HealthMonitor` gains an `on_reconnect` hook that fires on a
+  device's disconnected-to-reachable transition, which the embedder wires to flush the
+  buffer on recovery. Request/response calls (`list_tools`, `call_tool`, `read_resource`)
+  remain unbuffered.
 - BLE variant of the ESP32 MicroPython example: two device entry points over the Nordic
   UART Service — `main_ble.py` (aioble) and `main_ble_lowlevel.py` (the built-in
   `bluetooth` module) — plus a `host_demo_ble.py` host demo driven through `BLETransport`.
