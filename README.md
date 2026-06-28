@@ -18,12 +18,10 @@ tool interface they already use for software APIs. It provides:
 
 > **Status: alpha, under active development.** The public API is unstable and will
 > change. This repository is a *reference implementation* of the framework described in
-> the MCP-Edge paper (IEEE Cloud Summit 2026). Performance figures reported in the paper
-> are projected estimates, not measurements taken from this codebase. The full gateway
-> path is exercised against *simulated* devices. Serial/UART, BLE, and Wi-Fi (TCP)
-> transports have landed in the codebase — each validated in software against an in-memory
-> fake and paired with ESP32 MicroPython example firmware, but not yet exercised on
-> physical hardware.
+> the MCP-Edge paper (IEEE Cloud Summit 2026). Serial/UART, BLE, and Wi-Fi (TCP)
+> transports have landed — each validated in software against an in-memory fake and paired
+> with ESP32 MicroPython example firmware, but not yet exercised on physical hardware. The
+> gateway path is exercised end-to-end against simulated devices in the test suite.
 
 ## Installation
 
