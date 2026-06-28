@@ -1,15 +1,16 @@
 # ESP32 (MicroPython) MCP-Lite device
 
 A worked example of an **MCP-Edge Tier-2 device**: an ESP32 running MicroPython that
-exposes tools over a serial link or Bluetooth Low Energy, which an MCP-Edge gateway on a
-host drives with `SerialTransport` or `BLETransport`.
+exposes tools over a serial link, Bluetooth Low Energy, or Wi-Fi, which an MCP-Edge
+gateway on a host drives with `SerialTransport`, `BLETransport`, or `TcpTransport`.
 
 > **Status:** the protocol core is validated in software against the gateway's codec and
-> framing (`tests/test_firmware_core.py` in the repo root), and the serial `main.py` is
-> booted on a *simulated* ESP32 in CI (see [Simulated boot test](#simulated-boot-test)).
-> The BLE entry points share that tested core but are **not** booted in CI — Wokwi has no
-> BLE radio. Nothing here has been run on physical hardware by the maintainers — treat the
-> flashing and wiring notes below as a starting point and verify against your own board.
+> framing (`tests/test_firmware_core.py` in the repo root). The serial `main.py` and the
+> Wi-Fi `main_wifi.py` are booted on a *simulated* ESP32 in CI (see
+> [Simulated boot test](#simulated-boot-test)); the BLE entry points share that tested
+> core but are **not** booted — Wokwi has no BLE radio. Nothing here has been run on
+> physical hardware by the maintainers — treat the flashing and wiring notes below as a
+> starting point and verify against your own board.
 
 ## Files
 
@@ -19,8 +20,10 @@ host drives with `SerialTransport` or `BLETransport`.
 | `main.py` | MicroPython | Serial device entry point: wires `read_temp` and `set_led` into the core and serves them over UART1. |
 | `main_ble.py` | MicroPython | BLE device entry point (aioble): the same tools over the Nordic UART Service. Needs aioble installed. Not booted in CI. |
 | `main_ble_lowlevel.py` | MicroPython | BLE device entry point using the built-in `bluetooth` module — nothing extra to install. Not booted in CI. |
+| `main_wifi.py` | MicroPython | Wi-Fi device entry point: the same tools over a TCP server, reachable at `mcp-edge.local`. Booted in CI against Wokwi's simulated network. |
 | `host_demo.py` | CPython (host) | Drives a connected board over serial: lists tools, reads the temperature, toggles the LED. Requires hardware; not part of CI. |
 | `host_demo_ble.py` | CPython (host) | The same demo over BLE, via `BLETransport`. Requires hardware; not part of CI. |
+| `host_demo_wifi.py` | CPython (host) | The same demo over Wi-Fi, via `TcpTransport`, with an optional `--discover` flag. Requires a device on the network; not part of CI. |
 
 ## Flash the board (serial)
 
@@ -62,16 +65,22 @@ You should see the tool list, a temperature reading, and the LED toggling on the
 
 ## Simulated boot test
 
-CI runs a boot smoke test on a [Wokwi](https://wokwi.com)-simulated ESP32
+CI runs boot smoke tests on a [Wokwi](https://wokwi.com)-simulated ESP32
 (`.github/workflows/wokwi.yml`, driven by `wokwi.toml` and `diagram.json` in this
-directory). It boots `main.py` under real MicroPython and waits for the
-`mcp-edge device ready` marker, confirming the firmware imports `mcplite_device.py` and
-initializes without error on-device — which catches MicroPython-incompatible code that the
-CPython tests would miss. It does **not** exercise the serial protocol: Wokwi checks text
-on UART0, while data frames travel on UART1.
+directory) as a two-leg matrix. Each leg boots an entry point under real MicroPython and
+waits for the `mcp-edge device ready` marker, confirming the firmware imports
+`mcplite_device.py` and initializes without error on-device — which catches
+MicroPython-incompatible code that the CPython tests would miss.
+
+- **serial** boots `main.py`. It does **not** exercise the protocol round-trip: Wokwi
+  checks text on UART0, while data frames travel on UART1.
+- **wifi** boots `main_wifi.py`, which joins Wokwi's simulated `Wokwi-GUEST` network and
+  starts its TCP server (the marker prints only after Wi-Fi connects). It covers the
+  boot + connect path but not the TCP round-trip — Wokwi's default Public Gateway is
+  outbound-only.
 
 The Wokwi CLI boots a bare firmware image (unlike the web IDE, it does not auto-load
-project files), so the workflow bakes `main.py` and `mcplite_device.py` into the image
+project files), so each leg bakes its `main.py` and `mcplite_device.py` into the image
 first: it downloads the stock MicroPython build, pads it to 4 MB, adds a `vfs` partition,
 and writes the files into a littlefs image with
 [`mp-image-tool-esp32`](https://github.com/glenn20/mp-image-tool-esp32). The job needs a
@@ -116,10 +125,57 @@ Find the device's address (a MAC on Linux/Windows, a UUID on macOS) with a BLE s
 for example `bleak`'s `BleakScanner`, or a phone app such as nRF Connect. The device
 advertises as `mcp-edge`.
 
-> Unlike the serial path, the BLE entry points are **not** booted in CI: Wokwi has no BLE
-> radio, so there is no simulated boot test for them. The portable reassembly they rely on
-> (`FrameReader`) is covered by `tests/test_firmware_core.py`, but the BLE link glue itself
-> has not been exercised in CI or on hardware.
+> Unlike the serial and Wi-Fi paths, the BLE entry points are **not** booted in CI: Wokwi
+> has no BLE radio, so there is no simulated boot test for them. The portable reassembly
+> they rely on (`FrameReader`) is covered by `tests/test_firmware_core.py`, but the BLE
+> link glue itself has not been exercised in CI or on hardware.
+
+## Wi-Fi (TCP)
+
+The device can also speak over Wi-Fi: `main_wifi.py` connects to a network and serves the
+same MCP-Lite frames over a **TCP server** (port 8765 by default), reusing the identical
+length-prefix framing — inbound bytes are reassembled with `FrameReader`. A gateway on the
+same network drives it with `TcpTransport`.
+
+Flash it as `main.py`, and set your network credentials at the top of `main_wifi.py`
+(`WIFI_SSID` / `WIFI_PASSWORD`; the defaults connect to Wokwi's simulated `Wokwi-GUEST`
+network):
+
+```bash
+mpremote connect <port> cp mcplite_device.py :
+mpremote connect <port> cp main_wifi.py :main.py
+```
+
+No data wiring is needed — power the board and let it join Wi-Fi. Drive it from the host:
+
+```bash
+pip install "mcp-edge[wifi]"
+python host_demo_wifi.py --host mcp-edge.local    # connect by hostname
+python host_demo_wifi.py --host 192.168.1.50      # or by IP
+```
+
+### Finding the device (mDNS)
+
+`main_wifi.py` sets its hostname to `mcp-edge`, so on a network with mDNS it answers at
+`mcp-edge.local`. That is all the **stock** MicroPython firmware advertises — a plain
+hostname (an A record), not a service record. The library's
+`mcp_edge.transports.discovery.discover()` browses for the `_mcp-edge._tcp.local.`
+*service*, which the stock firmware does **not** announce, so it will not list this
+device — reach it by hostname or IP instead. To make the device discoverable through
+`discover()`, add a full mDNS responder such as
+[micropython-mdns](https://github.com/cbrand/micropython-mdns), which needs a custom
+firmware build (stock builds disable the native C mDNS responder). `discover()` itself is
+a general browser and will find any host advertising the service (for example a Linux box
+running Avahi):
+
+```bash
+python host_demo_wifi.py --discover    # browse mDNS, then connect to the first match
+```
+
+> The Wokwi `wifi` boot leg connects to `Wokwi-GUEST` through Wokwi's default Public
+> Gateway, which is outbound-only — so CI confirms the device boots, joins Wi-Fi, and
+> starts its server, but does not reach the TCP server for a round-trip (that needs
+> Wokwi's paid Private Gateway). The example has not been run on physical hardware.
 
 ## Note on floats
 

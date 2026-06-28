@@ -15,12 +15,30 @@ All notable changes to this project are documented here. The format is based on
   send and reassembling inbound notifications from the same prefix; bleak is imported
   lazily. Validated in software against an in-memory fake; not yet exercised on physical
   hardware.
+- Wi-Fi transport (`transports.TcpTransport`) that carries MCP-Lite frames over a TCP
+  connection, reusing the serial length-prefix framing. It is built on the standard
+  library's asyncio streams and pulls in no third-party dependency; a connection factory
+  is injectable for hermetic tests. Validated in software against an in-memory fake; not
+  yet exercised on physical hardware.
+- mDNS service discovery (`transports.discovery.discover`, `wifi` extra) that browses the
+  local network for devices advertising the `_mcp-edge._tcp.local.` service over zeroconf
+  and returns their hosts and ports; zeroconf is imported lazily. The stock MicroPython
+  firmware advertises only its hostname (an A record), not the full service record, so the
+  ESP32 example is reached at `mcp-edge.local` rather than through this browser unless a
+  full mDNS responder is added.
 - BLE variant of the ESP32 MicroPython example: two device entry points over the Nordic
   UART Service — `main_ble.py` (aioble) and `main_ble_lowlevel.py` (the built-in
   `bluetooth` module) — plus a `host_demo_ble.py` host demo driven through `BLETransport`.
   The portable core gains a push-based `FrameReader` that reassembles frames from BLE
   packets (covered by `tests/test_firmware_core.py`). The BLE entry points are not booted
   in CI (Wokwi has no BLE radio) and are not validated on hardware.
+- Wi-Fi variant of the ESP32 MicroPython example: a `main_wifi.py` device entry point that
+  connects to Wi-Fi and serves MCP-Lite frames over a TCP server, reusing the portable
+  core and `FrameReader`, plus a `host_demo_wifi.py` host demo driven through
+  `TcpTransport` with an optional `--discover` flag. The Wokwi workflow gains a `wifi` boot
+  leg that connects to Wokwi's simulated network and confirms the device boots, connects,
+  and starts its server; the TCP round-trip is not exercised in CI, and the example is not
+  validated on hardware.
 
 ## [0.1.1] - 2026-06-25
 

@@ -20,10 +20,10 @@ tool interface they already use for software APIs. It provides:
 > change. This repository is a *reference implementation* of the framework described in
 > the MCP-Edge paper (IEEE Cloud Summit 2026). Performance figures reported in the paper
 > are projected estimates, not measurements taken from this codebase. The full gateway
-> path is exercised against *simulated* devices. A serial/UART transport has landed in the
-> codebase — validated in software against an in-memory fake, but not yet exercised on
-> physical hardware or paired with example firmware; BLE and Wi-Fi transports arrive in a
-> later version.
+> path is exercised against *simulated* devices. Serial/UART, BLE, and Wi-Fi (TCP)
+> transports have landed in the codebase — each validated in software against an in-memory
+> fake and paired with ESP32 MicroPython example firmware, but not yet exercised on
+> physical hardware.
 
 ## Installation
 
@@ -101,8 +101,9 @@ transport = SerialTransport("COM3", baudrate=115200)
 Frames use a length-prefixed wire format — a 2-byte big-endian length followed by the CBOR
 payload — documented in `transports/serial.py`. Device firmware must frame its replies the
 same way; the exported `encode_frame` / `decode_frame` helpers make that straightforward.
-This path is **not yet validated on physical hardware**, and example firmware is still in
-progress.
+This path is **not yet validated on physical hardware**. Worked ESP32 MicroPython firmware
+for the serial, BLE, and Wi-Fi transports lives in
+[`examples/firmware/esp32_micropython/`](examples/firmware/esp32_micropython/).
 
 ## Roadmap
 
@@ -110,8 +111,9 @@ progress.
       (CBOR, schema caching, connection pooling, offline buffering), device simulator,
       health monitor, CLI, hermetic CI
 - [ ] **v0.2** — real transports and [Wokwi](https://wokwi.com) firmware-in-the-loop
-      tests (Arduino / ESP32 / RP2040). The serial/UART transport (`pyserial`) has landed
-      (software-tested); BLE and Wi-Fi/mDNS are still to come
+      tests (Arduino / ESP32 / RP2040). The serial/UART (`pyserial`), BLE (`bleak`), and
+      Wi-Fi (TCP, with mDNS discovery via `zeroconf`) transports have landed
+      (software-tested), each with ESP32 MicroPython example firmware
 - [ ] **v0.2+** — Edge Impulse (inference as an MCP tool) and Arduino IoT Cloud
       (properties as MCP) integration examples; Renode / QEMU backends
 

@@ -6,6 +6,7 @@ from .base import Transport, TransportError
 from .ble import BLETransport
 from .loopback import FrameHandler, LoopbackTransport
 from .serial import SerialTransport
+from .tcp import TcpTransport
 
 __all__ = [
     "Transport",
@@ -14,4 +15,5 @@ __all__ = [
     "FrameHandler",
     "SerialTransport",
     "BLETransport",
+    "TcpTransport",
 ]
