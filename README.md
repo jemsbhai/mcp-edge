@@ -17,11 +17,10 @@ tool interface they already use for software APIs. It provides:
   connection pooling, and offline request buffering.
 
 > **Status: alpha, under active development.** The public API is unstable and will
-> change. This repository is a *reference implementation* of the framework described in
-> the MCP-Edge paper (IEEE Cloud Summit 2026). Serial/UART, BLE, and Wi-Fi (TCP)
-> transports have landed — each validated in software against an in-memory fake and paired
-> with ESP32 MicroPython example firmware, but not yet exercised on physical hardware. The
-> gateway path is exercised end-to-end against simulated devices in the test suite.
+> change. This is the reference implementation of the MCP-Edge framework (IEEE Cloud
+> Summit 2026): the gateway, MCP-Lite server, four-tier device taxonomy, and serial/UART,
+> BLE, and Wi-Fi (TCP) transports, all covered by a hermetic test suite, with ESP32
+> MicroPython example firmware and a Wokwi boot test in CI.
 
 ## Installation
 
