@@ -7,6 +7,7 @@ from .ble import BLETransport
 from .loopback import FrameHandler, LoopbackTransport
 from .serial import SerialTransport
 from .tcp import TcpTransport
+from .udp import UdpTransport
 
 __all__ = [
     "Transport",
@@ -16,4 +17,5 @@ __all__ = [
     "SerialTransport",
     "BLETransport",
     "TcpTransport",
+    "UdpTransport",
 ]

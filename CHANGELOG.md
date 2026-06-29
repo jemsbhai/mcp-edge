@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- UDP transport (`transports.UdpTransport`), a connectionless sibling to `TcpTransport`
+  that carries each MCP-Lite frame in a single length-prefixed datagram over stdlib
+  asyncio with no third-party dependency. Because UDP is best-effort, `receive` waits up to
+  a timeout for the reply datagram and raises `TransportError` if none arrives (or on a
+  reported socket error such as an ICMP port-unreachable); an endpoint factory is
+  injectable for hermetic tests. Validated in software against an in-memory fake endpoint;
+  not yet exercised over a real network link.
+
 ## [0.2.0] - 2026-06-28
 
 ### Added
