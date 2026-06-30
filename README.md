@@ -20,7 +20,9 @@ tool interface they already use for software APIs. It provides:
 > change. This is the reference implementation of the MCP-Edge framework (IEEE Cloud
 > Summit 2026): the gateway, MCP-Lite server, four-tier device taxonomy, and serial/UART,
 > BLE, and Wi-Fi (TCP) transports, all covered by a hermetic test suite, with ESP32
-> MicroPython example firmware and a Wokwi boot test in CI.
+> MicroPython example firmware and a Wokwi boot test in CI, and the gateway install +
+> boot verified on aarch64 Linux and Raspberry Pi OS (QEMU) in CI — see
+> [platform support](docs/platform-support.md).
 
 ## Installation
 

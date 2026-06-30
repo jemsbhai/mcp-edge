@@ -26,6 +26,54 @@ jobs:
       - name: Test
         run: pytest -q --cov=mcp_edge --cov-report=term-missing
 
+  # Verifies the gateway install + deploy path on aarch64 Linux -- the architecture a
+  # Raspberry Pi 4/5 and the Arduino UNO Q (Linux-class boards) actually run -- on
+  # GitHub's free arm64 runner. Installs the full extras so all three compiled wheels
+  # (cbor2, bleak, zeroconf) are proven to resolve on aarch64, not just pure Python.
+  test-arm64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[all,dev]"
+      - name: Test
+        run: pytest -q
+      - name: Boot the demo gateway
+        # Closed stdin -> stdio server reads EOF and exits 0 after announcing its devices,
+        # so this confirms the CLI installs and runs on aarch64 without needing a client.
+        run: mcp-edge run --demo </dev/null
+
+  # Verifies the gateway on the *actual* Raspberry Pi OS image (Debian arm64) under QEMU
+  # user-mode emulation -- the real distro and system Python a Pi 4/5 runs, on an emulated
+  # ARM core. Stronger than the native-arm64 job (real OS userland, not just the CPU
+  # architecture); still not physical silicon and not RAM-constrained to Pi levels.
+  test-raspberry-pi-os:
+    runs-on: ubuntu-latest
+    name: raspberry-pi-os (qemu)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pguyot/arm-runner-action@v2
+        with:
+          base_image: raspios_lite_arm64:latest
+          cpu: cortex-a76   # Pi 5 core; use cortex-a72 for Pi 4
+          # The stock Pi OS Lite rootfs is ~2.4 GB; grow it so the pip install fits.
+          image_additional_mb: 3072
+          # Raspberry Pi OS (bookworm) marks the system Python externally-managed (PEP 668),
+          # so install into a venv. This runs inside the emulated Pi OS image. Install the
+          # runtime extras plus only the test runners (not the full dev/build tooling).
+          commands: |
+            apt-get update && apt-get install -y python3-venv
+            python3 -m venv /tmp/venv
+            /tmp/venv/bin/pip install --upgrade pip
+            /tmp/venv/bin/pip install -e ".[all]" pytest pytest-asyncio
+            /tmp/venv/bin/pytest -q
+            /tmp/venv/bin/mcp-edge run --demo </dev/null
+
   build:
     runs-on: ubuntu-latest
     steps:

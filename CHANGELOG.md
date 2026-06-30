@@ -7,6 +7,12 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 ### Added
+- CI verification of the gateway on Linux-class ARM boards: a native `ubuntu-24.04-arm`
+  job installs the full extras (proving the `cbor2`, `bleak`, and `zeroconf` wheels resolve
+  on aarch64), runs the suite, and boots the demo gateway; a second job repeats those checks
+  inside the actual Raspberry Pi OS image under QEMU. Covers the Raspberry Pi 4/5 and the
+  Arduino UNO Q (Linux side). Documented in [`docs/platform-support.md`](docs/platform-support.md).
+  This is emulation/simulation in CI, not physical hardware.
 - UDP transport (`transports.UdpTransport`), a connectionless sibling to `TcpTransport`
   that carries each MCP-Lite frame in a single length-prefixed datagram over stdlib
   asyncio with no third-party dependency. Because UDP is best-effort, `receive` waits up to
