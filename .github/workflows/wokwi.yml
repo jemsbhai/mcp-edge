@@ -12,28 +12,32 @@ on:
       - ".github/workflows/wokwi.yml"
   workflow_dispatch:
 
-# Simulated boot smoke tests. Each matrix leg builds a MicroPython ESP32 image with this
-# project's .py files baked into its littlefs filesystem, boots it on a Wokwi-simulated
-# ESP32, and checks that the entry point runs and prints its ready marker. This proves the
-# firmware runs under real MicroPython -- catching MicroPython-incompatible code the
-# hermetic CPython tests cannot.
+# Simulated boot smoke tests across the ESP32 family. Each matrix leg builds a MicroPython
+# image for one chip with this project's .py files baked into its littlefs filesystem, boots
+# it on the matching Wokwi-simulated board, and checks that the entry point runs and prints
+# its ready marker. This proves the firmware runs under real MicroPython on each chip --
+# catching MicroPython- and chip-incompatible code the hermetic CPython tests cannot.
 #
+# Chips: ESP32 (base), ESP32-S3, ESP32-C3, ESP32-C6. Entry points:
 #   serial: boots main.py (UART transport). Does not exercise the protocol round-trip --
-#           Wokwi checks text on UART0, while the frames are binary on UART1.
+#           Wokwi checks text on UART0, while the frames are binary on UART1. ESP32 only:
+#           its UART1 pins (GPIO16/17) are flash pins on the C3, so it is not portable.
 #   wifi:   boots main_wifi.py, which connects to Wokwi's simulated "Wokwi-GUEST" network
 #           and starts the TCP server. The marker prints only after Wi-Fi connects, so this
 #           covers the boot + connect path. It does not exercise the TCP round-trip: Wokwi's
 #           default Public Gateway is outbound-only, so the runner cannot reach the device's
-#           server (incoming connections need the paid Private Gateway).
+#           server (incoming connections need the paid Private Gateway). Has no board-specific
+#           GPIO, so it is the portable entry point run on every variant.
 #
-# Both legs need the WOKWI_CLI_TOKEN secret and skip cleanly (passing) without it, so they
+# Every leg needs the WOKWI_CLI_TOKEN secret and skips cleanly (passing) without it, so they
 # never block the core CI workflow.
 
 env:
   WOKWI_CLI_TOKEN: ${{ secrets.WOKWI_CLI_TOKEN }}
-  # Stock MicroPython ESP32 image. If the download 404s, check
-  # https://micropython.org/download/ESP32_GENERIC for the current stable filename.
-  MICROPYTHON_BIN: ESP32_GENERIC-20260406-v1.28.0.bin
+  # Stock MicroPython release shared by every ESP32 variant below. Each leg downloads
+  # <chip>-<MP_RELEASE>. If a download 404s, check https://micropython.org/download for
+  # the current stable filename.
+  MP_RELEASE: 20260406-v1.28.0.bin
   EXAMPLE_DIR: examples/firmware/esp32_micropython
 
 jobs:
@@ -43,10 +47,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Each leg boots one entry point on one simulated ESP32 variant. The base ESP32
+        # runs both transports; the S3/C3/C6 variants run the Wi-Fi entry point, which
+        # has no board-specific GPIO -- the serial main.py pins UART1 to GPIO16/17, which
+        # are flash pins on the C3, so it is not portable across the family. All variants
+        # share the identical 4 MB image recipe (same partition layout).
         include:
-          - variant: serial
+          - variant: esp32-serial
+            chip: ESP32_GENERIC
+            board: board-esp32-devkit-c-v4
             main: main.py
-          - variant: wifi
+          - variant: esp32-wifi
+            chip: ESP32_GENERIC
+            board: board-esp32-devkit-c-v4
+            main: main_wifi.py
+          - variant: esp32s3-wifi
+            chip: ESP32_GENERIC_S3
+            board: board-esp32-s3-devkitc-1
+            main: main_wifi.py
+          - variant: esp32c3-wifi
+            chip: ESP32_GENERIC_C3
+            board: board-esp32-c3-devkitm-1
+            main: main_wifi.py
+          - variant: esp32c6-wifi
+            chip: ESP32_GENERIC_C6
+            board: board-esp32-c6-devkitc-1
             main: main_wifi.py
     steps:
       - name: Check for Wokwi token
@@ -76,14 +101,18 @@ jobs:
       - name: Build MicroPython image with the device files baked in
         if: steps.guard.outputs.run == 'true'
         working-directory: ${{ env.EXAMPLE_DIR }}
+        env:
+          BOARD: ${{ matrix.board }}
         run: |
           set -euo pipefail
-          # 1. Download the stock MicroPython firmware.
-          url="https://micropython.org/resources/firmware/${MICROPYTHON_BIN}"
+          bin="${{ matrix.chip }}-${MP_RELEASE}"
+          # 1. Download this chip's stock MicroPython firmware.
+          url="https://micropython.org/resources/firmware/${bin}"
           echo "Downloading ${url}"
-          curl -fSL "${url}" -o "${MICROPYTHON_BIN}"
-          # 2. Pad it to the full 4 MB so the vfs flash region physically exists.
-          python -c "open('firmware-4m.bin','wb').write(open('${MICROPYTHON_BIN}','rb').read().ljust(0x400000, bytes([255])))"
+          curl -fSL "${url}" -o "${bin}"
+          # 2. Pad it to the full 4 MB so the vfs flash region physically exists (every
+          #    ESP32 variant here ships a 4 MB image with the same partition layout).
+          python -c "open('firmware-4m.bin','wb').write(open('${bin}','rb').read().ljust(0x400000, bytes([255])))"
           # 3. Select this leg's entry point as main.py (MicroPython auto-runs main.py).
           if [ "${{ matrix.main }}" != "main.py" ]; then
             cp "${{ matrix.main }}" main.py
@@ -94,6 +123,11 @@ jobs:
           mp-image-tool-esp32 firmware-4m.bin --add vfs=fat:2M:2M --fs mkfs vfs --fs put main.py mcplite_device.py / -o firmware-fs.bin
           # 5. Log the filesystem contents as a sanity check.
           mp-image-tool-esp32 firmware-fs.bin --fs ls /
+          # 6. Point the Wokwi diagram at this leg's board (overwrites the committed
+          #    ESP32 diagram on the runner only).
+          cat > diagram.json <<EOF
+          {"version":1,"author":"MCP-Edge","editor":"wokwi","parts":[{"type":"${BOARD}","id":"esp","top":0,"left":0,"attrs":{}}],"connections":[["esp:TX","\$serialMonitor:RX","",[]],["esp:RX","\$serialMonitor:TX","",[]]],"dependencies":{}}
+          EOF
 
       - name: Boot smoke test on simulated ESP32
         if: steps.guard.outputs.run == 'true'
@@ -101,6 +135,6 @@ jobs:
         with:
           token: ${{ secrets.WOKWI_CLI_TOKEN }}
           path: ${{ env.EXAMPLE_DIR }}
-          timeout: 60000
+          timeout: 90000
           expect_text: "mcp-edge device ready"
           fail_text: "Traceback"

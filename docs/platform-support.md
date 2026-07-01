@@ -21,10 +21,10 @@ hardware pass rather than replacing it.
 | Raspberry Pi 4 Model B | Linux | Gateway (`pip install`) | Native `ubuntu-24.04-arm` runner + Raspberry Pi OS under QEMU | Verified in CI |
 | Raspberry Pi 5 Model B | Linux | Gateway (`pip install`) | Native `ubuntu-24.04-arm` runner + Raspberry Pi OS under QEMU | Verified in CI |
 | Arduino UNO Q | Linux + MCU | Gateway (`pip install`) on the Linux side | Native `ubuntu-24.04-arm` runner + Raspberry Pi OS under QEMU | Verified in CI (gateway) |
-| ESP32-S3 | MCU | Device firmware | Wokwi boot smoke test (planned) | Sim planned |
-| ESP32-C3 | MCU | Device firmware | Wokwi boot smoke test (planned) | Sim planned |
-| ESP32-C6 | MCU | Device firmware | Wokwi boot smoke test (planned) | Sim planned |
-| ESP32-C5 | MCU | Device firmware | Wokwi boot smoke test (Wokwi C5 is alpha) | Sim planned |
+| ESP32-S3 | MCU | Device firmware | Wokwi boot smoke test (`board-esp32-s3-devkitc-1`) | Verified in CI |
+| ESP32-C3 | MCU | Device firmware | Wokwi boot smoke test (`board-esp32-c3-devkitm-1`) | Verified in CI |
+| ESP32-C6 | MCU | Device firmware | Wokwi boot smoke test (`board-esp32-c6-devkitc-1`) | Verified in CI |
+| ESP32-C5 | MCU | Device firmware | Wokwi C5 support is still alpha | Sim planned |
 | RP2040 | MCU | Device firmware | Wokwi (rp2 port uses different image tooling) | Stretch |
 | nRF52840 | MCU | Device firmware | Renode (also on the Renode/QEMU roadmap) | Stretch |
 | Arduino UNO R4 | MCU | Device firmware | Needs an Arduino/C MCP-Lite firmware port first | Needs firmware port |
@@ -41,8 +41,11 @@ hardware pass rather than replacing it.
   with an MCU, so its gateway (Linux) side is covered here; its MCU side would follow the
   device-firmware path.
 - **ESP32 family** reuses the existing Wokwi boot harness, booting the same MicroPython
-  firmware on each chip variant to confirm it imports and initializes under real
-  MicroPython on that target.
+  firmware on each chip variant (ESP32, S3, C3, C6) to confirm it imports and initializes
+  under real MicroPython on that target. The variants run the Wi-Fi entry point, which has
+  no board-specific GPIO; the serial entry point pins UART1 to GPIO16/17, which are flash
+  pins on the C3, so it stays ESP32-only. C5 is left for later since Wokwi's C5 support is
+  still alpha.
 - **RP2040 and nRF52840** are reachable in simulation (Wokwi and Renode respectively) but
   need their own tooling, so they are staged as stretch work.
 - **AVR boards (UNO R3, Mega 2560)** have single-digit kilobytes of RAM and cannot host an
