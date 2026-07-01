@@ -7,6 +7,18 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 ### Added
+- Wokwi boot smoke tests extended across the ESP32 family: the simulation matrix now boots
+  the MicroPython firmware on the ESP32-S3, ESP32-C3, and ESP32-C6 (alongside the base
+  ESP32), each on its matching Wokwi board, confirming the firmware imports and initializes
+  under real MicroPython on that chip. The variants run the Wi-Fi entry point, which has no
+  board-specific GPIO; the serial entry point stays ESP32-only because its UART1 pins are
+  flash pins on the C3. All legs share one 4 MB image recipe.
+- CI verification of the gateway on Linux-class ARM boards: a native `ubuntu-24.04-arm`
+  job installs the full extras (proving the `cbor2`, `bleak`, and `zeroconf` wheels resolve
+  on aarch64), runs the suite, and boots the demo gateway; a second job repeats those checks
+  inside the actual Raspberry Pi OS image under QEMU. Covers the Raspberry Pi 4/5 and the
+  Arduino UNO Q (Linux side). Documented in [`docs/platform-support.md`](docs/platform-support.md).
+  This is emulation/simulation in CI, not physical hardware.
 - UDP transport (`transports.UdpTransport`), a connectionless sibling to `TcpTransport`
   that carries each MCP-Lite frame in a single length-prefixed datagram over stdlib
   asyncio with no third-party dependency. Because UDP is best-effort, `receive` waits up to
