@@ -67,7 +67,7 @@ You should see the tool list, a temperature reading, and the LED toggling on the
 
 CI runs boot smoke tests on a [Wokwi](https://wokwi.com)-simulated ESP32
 (`.github/workflows/wokwi.yml`, driven by `wokwi.toml` and `diagram.json` in this
-directory) as a two-leg matrix. Each leg boots an entry point under real MicroPython and
+directory) as a matrix. Each leg boots an entry point under real MicroPython and
 waits for the `mcp-edge device ready` marker, confirming the firmware imports
 `mcplite_device.py` and initializes without error on-device — which catches
 MicroPython-incompatible code that the CPython tests would miss.
@@ -86,6 +86,11 @@ and writes the files into a littlefs image with
 [`mp-image-tool-esp32`](https://github.com/glenn20/mp-image-tool-esp32). The job needs a
 `WOKWI_CLI_TOKEN` repository secret and skips cleanly without it, so forks and PRs are
 unaffected.
+
+A separate `rp2-boot-smoke-test` job runs the same marker check on a simulated Raspberry Pi
+Pico W (`board-pi-pico-w`), with the files baked in via
+[`dir2uf2`](https://github.com/Gadgetoid/dir2uf2); see
+[`docs/platform-support.md`](../../../docs/platform-support.md) for why it differs.
 
 ## Bluetooth Low Energy (BLE)
 

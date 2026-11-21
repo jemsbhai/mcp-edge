@@ -25,7 +25,7 @@ hardware pass rather than replacing it.
 | ESP32-C3 | MCU | Device firmware | Wokwi boot smoke test (`board-esp32-c3-devkitm-1`) | Verified in CI |
 | ESP32-C6 | MCU | Device firmware | Wokwi boot smoke test (`board-esp32-c6-devkitc-1`) | Verified in CI |
 | ESP32-C5 | MCU | Device firmware | Wokwi C5 support is still alpha | Sim planned |
-| RP2040 | MCU | Device firmware | Wokwi (rp2 port uses different image tooling) | Stretch |
+| RP2040 (Raspberry Pi Pico W) | MCU | Device firmware | Wokwi boot smoke test (`board-pi-pico-w`, Wi-Fi entry point) | Verified in CI |
 | nRF52840 | MCU | Device firmware | Renode (also on the Renode/QEMU roadmap) | Stretch |
 | Arduino UNO R4 | MCU | Device firmware | Needs an Arduino/C MCP-Lite firmware port first | Needs firmware port |
 | Arduino Giga | MCU | Device firmware | Needs a firmware port; no MicroPython example yet | Needs firmware port |
@@ -46,8 +46,13 @@ hardware pass rather than replacing it.
   no board-specific GPIO; the serial entry point pins UART1 to GPIO16/17, which are flash
   pins on the C3, so it stays ESP32-only. C5 is left for later since Wokwi's C5 support is
   still alpha.
-- **RP2040 and nRF52840** are reachable in simulation (Wokwi and Renode respectively) but
-  need their own tooling, so they are staged as stretch work.
+- **RP2040** is verified on a simulated Raspberry Pi Pico W (the RP2040 variant with Wi-Fi).
+  The rp2 port ships a `.uf2` and keeps its filesystem in a separate flash region, so the
+  device files are baked in with `dir2uf2` + littlefs rather than the ESP32 image tool; it
+  runs the same Wi-Fi entry point since the serial `main.py` UART1 pins are not UART1-capable
+  on the RP2040. A non-Wi-Fi RP2040 (base Pico) would need a serial-pin port first.
+- **nRF52840** is reachable in simulation via Renode but needs its own tooling, so it stays
+  staged as stretch work.
 - **AVR boards (UNO R3, Mega 2560)** have single-digit kilobytes of RAM and cannot host an
   MCP-Lite device. They are listed for completeness, not as a target to flash.
 - **UNO R4 and Giga** are capable enough but have no MCP-Lite firmware yet (the only worked

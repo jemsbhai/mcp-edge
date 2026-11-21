@@ -7,6 +7,12 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 ### Added
+- Wokwi boot smoke test for the RP2040, on a simulated Raspberry Pi Pico W (the RP2040
+  variant with Wi-Fi). The rp2 port ships a `.uf2` and keeps its filesystem in a separate
+  flash region, so the device files are baked in with `dir2uf2` + littlefs instead of the
+  ESP32 image tool; it runs the Wi-Fi entry point because the serial `main.py` pins UART1 to
+  GPIO16/17, which are not UART1-capable on the RP2040. Documented in
+  [`docs/platform-support.md`](docs/platform-support.md).
 - Wokwi boot smoke tests extended across the ESP32 family: the simulation matrix now boots
   the MicroPython firmware on the ESP32-S3, ESP32-C3, and ESP32-C6 (alongside the base
   ESP32), each on its matching Wokwi board, confirming the firmware imports and initializes

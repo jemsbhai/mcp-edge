@@ -53,7 +53,9 @@ jobs:
   # ARM core. Stronger than the native-arm64 job (real OS userland, not just the CPU
   # architecture); still not physical silicon and not RAM-constrained to Pi levels.
   test-raspberry-pi-os:
-    runs-on: ubuntu-latest
+    # Pinned: on ubuntu-26.04 qemu-user-static has no install candidate, so
+    # arm-runner-action fails during setup.
+    runs-on: ubuntu-24.04
     name: raspberry-pi-os (qemu)
     steps:
       - uses: actions/checkout@v4

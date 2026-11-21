@@ -13,9 +13,9 @@ the README.
 Flash this together with ``mcplite_device.py``, and set ``WIFI_SSID`` / ``WIFI_PASSWORD``
 below (the defaults connect to Wokwi's simulated network).
 
-This is example code: the boot + Wi-Fi-connect path is smoke-tested on a simulated ESP32
-in CI (the wifi-boot job), but the TCP protocol round-trip is not, and it has not been
-validated on physical hardware.
+This is example code: the boot + Wi-Fi-connect path is smoke-tested on simulated ESP32-family
+boards and a Pico W in CI (the Wokwi boot jobs), but the TCP protocol round-trip is not, and
+it has not been validated on physical hardware.
 """
 
 import asyncio
